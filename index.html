@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Psoriasis Patient Avatar Simulation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet"/>
+
+<style>
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  .fade-in { animation: fadeIn 0.25s ease-in-out; }
+  @keyframes fadeIn { from {opacity:0; transform:translateY(8px);} to {opacity:1; transform:translateY(0);} }
+
+  .typing-indicator span { animation: blink 1.4s infinite both; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%{opacity:.2;} 20%{opacity:1;} 100%{opacity:.2;} }
+
+/* --- Clinical overlay enhancements (layout-safe) --- */
+.view-active { background: rgba(255,255,255,0.12); color: #fff !important; }
+.clinical-zoom {
+  transform: scale(1);
+  transition: transform 650ms cubic-bezier(.22,.61,.36,1);
+}
+#clinical-overlay.zoomed .clinical-zoom {
+  transform: scale(1.08);
+}
+
+.hotspot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.95);
+  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+.hotspot:hover { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.20); }
+
+.tooltip {
+  position: absolute;
+  min-width: 170px;
+  max-width: 240px;
+  background: rgba(15, 23, 42, 0.92);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  font-size: 11px;
+  line-height: 1.25;
+  transform: translate(-50%, -120%);
+  opacity: 0;
+  transition: opacity 140ms ease;
+  pointer-events: none;
+  z-index: 30;
+}
+.hotspot:hover + .tooltip { opacity: 1; }
+
+
+/* --- Real World CE premium header/logo treatment --- */
+.rwce-logo{
+  height:46px; width:auto; object-fit:contain;
+  opacity:.96;
+  transform:translateZ(0) scale(1);
+  transition:transform 180ms ease, opacity 180ms ease, filter 180ms ease;
+  filter: drop-shadow(0 6px 10px rgba(15, 23, 42, 0.10));
+}
+.rwce-logo:hover{
+  opacity:1;
+  transform:translateZ(0) scale(1.03);
+  filter: drop-shadow(0 10px 18px rgba(15, 23, 42, 0.14));
+}
+.rwce-logo:active{ transform:translateZ(0) scale(1.01); }
+.brand-left{ gap:16px; }
+
+  .bg-medical-blue { background-color: #002147; }
+  .glass-cmv { background: rgba(255,255,255,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(226,232,240,1); }
+
+  /* --- Premium UI polish (layout-safe) --- */
+  :root{
+    --rw-blue: #2563eb;         /* blue-600 */
+    --rw-blue-700: #1d4ed8;     /* blue-700 */
+    --rw-ink: #0f172a;          /* slate-900 */
+  }
+  body{
+    background:
+      radial-gradient(1200px 600px at 12% 0%, rgba(37, 99, 235, 0.10), rgba(37, 99, 235, 0.00) 55%),
+      radial-gradient(900px 450px at 88% 18%, rgba(99, 102, 241, 0.10), rgba(99, 102, 241, 0.00) 52%),
+      linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,1) 100%);
+  }
+  .glass-cmv{
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(226,232,240,1);
+  }
+  #sidebar{
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(226,232,240,1);
+  }
+  .rw-card-soft{
+    border-radius: 16px;
+    border: 1px solid rgba(226,232,240,1);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  }
+  .rw-btn-primary{
+    background: var(--rw-blue);
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.20);
+  }
+  .rw-btn-primary:hover{ background: var(--rw-blue-700); }
+  .session-item{
+    border: 1px solid rgba(226,232,240,1);
+    background: rgba(255,255,255,0.7);
+  }
+  .session-item:hover{
+    background: rgba(37, 99, 235, 0.06);
+    border-color: rgba(37, 99, 235, 0.35);
+  }
+  .session-item.active{
+    background: rgba(37, 99, 235, 0.10);
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.10);
+  }
+  .bubble-bot{
+    border: 1px solid rgba(226,232,240,1);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  }
+  .bubble-user{
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+  }
+  @media (min-width: 768px){
+    .scrollbar-hide::-webkit-scrollbar{ display:block; width:10px; }
+    .scrollbar-hide::-webkit-scrollbar-thumb{
+      background: rgba(148,163,184,0.35);
+      border-radius: 999px;
+      border: 3px solid rgba(248,250,252,1);
+    }
+    .scrollbar-hide::-webkit-scrollbar-track{ background: transparent; }
+  }
+
+
+  .module-tab {
+    display:inline-flex; align-items:center; gap:.5rem;
+    padding:.7rem 1rem; border-radius:999px;
+    color:#64748b; border:1px solid transparent;
+    transition:all .18s ease; cursor:pointer;
+  }
+  .module-tab:hover{ color:#1d4ed8; background:rgba(37,99,235,.06); border-color:rgba(37,99,235,.14); }
+  .module-tab.active{
+    color:#1d4ed8; background:rgba(37,99,235,.10);
+    border-color:rgba(37,99,235,.22); box-shadow:0 8px 18px rgba(37,99,235,.10);
+  }
+  .module-shell{ max-width:56rem; margin:0 auto; }
+  .module-card{ background:rgba(255,255,255,.94); border:1px solid rgba(226,232,240,1); border-radius:20px; box-shadow:0 10px 24px rgba(15,23,42,.05); }
+  .pill-kicker{ display:inline-flex; align-items:center; gap:.5rem; padding:.45rem .8rem; border-radius:999px; background:rgba(37,99,235,.08); color:#1d4ed8; font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+  .resource-link{ display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 1.1rem; border-radius:16px; border:1px solid rgba(226,232,240,1); background:#fff; transition:all .18s ease; }
+  .resource-link:hover{ border-color:rgba(37,99,235,.30); background:rgba(239,246,255,1); }
+  .quiz-choice.correct{ border-color:rgba(22,163,74,.35) !important; background:rgba(240,253,244,1) !important; }
+  .quiz-choice.incorrect{ border-color:rgba(220,38,38,.28) !important; background:rgba(254,242,242,1) !important; }
+  .quiz-choice.selected{ border-color:rgba(37,99,235,.35) !important; background:rgba(239,246,255,1) !important; }
+
+</style>
+
+</head>
+
+<body class="bg-slate-50 h-screen flex flex-col overflow-hidden font-sans text-slate-800">
+
+<!-- Header -->
+
+<!-- CMV Style Header -->
+<header class="sticky top-0 z-50 glass-cmv h-20 flex items-center justify-between px-6 shadow-sm">
+
+  <div class="flex items-center gap-3">
+    <div class="leading-tight">
+      <div class="font-extrabold text-xl uppercase whitespace-nowrap text-slate-900">
+        REAL WORLD <span class="text-blue-600">CE</span>
+      </div>
+        <div class="text-[10px] font-semibold tracking-widest uppercase text-slate-500 mt-0.5">
+          Featuring: <span class="font-extrabold text-slate-900">REAL </span><span class="font-extrabold text-blue-600">PATIENT</span>
+        </div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-6">
+    <div class="hidden md:flex flex-col items-end">
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Mastery Progress</span>
+      <div class="w-32 h-2 bg-slate-100 rounded-full mt-1 overflow-hidden">
+        <div class="h-full bg-blue-600 w-0 transition-all duration-500" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <button class="md:hidden text-slate-600" id="btn-menu">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+  </div>
+</header>
+
+
+<div class="flex flex-1 overflow-hidden relative px-3 md:px-6 pb-4 pt-3 md:pt-4">
+
+  <!-- Sidebar Navigation -->
+  <nav id="sidebar" class="absolute md:relative w-72 bg-white border-r border-slate-200 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 z-20 flex flex-col shrink-0 shadow-lg md:shadow-none md:rounded-2xl md:shadow-sm md:border md:border-slate-200">
+    <div class="p-4 border-b border-slate-200/60 flex justify-between items-center">
+      <h2 class="font-semibold text-slate-700">Sessions</h2>
+      <button class="md:hidden text-slate-400 hover:text-slate-600" id="btn-close">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-2 space-y-2" id="session-list"></div>
+
+    <div class="p-4 bg-slate-50 border-t border-slate-200">
+      <div class="text-xs text-slate-500 mb-2">Current Mode</div>
+      <div class="flex items-center gap-2 text-sm font-medium text-blue-700">
+        <span class="material-symbols-outlined text-base">school</span>
+        Interactive Simulation
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content Area -->
+  <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+    <!-- Left Panel: Patient Viz -->
+    <section class="w-full md:w-5/12 lg:w-4/12 bg-white/70 backdrop-blur border border-slate-200 md:rounded-2xl md:shadow-sm flex flex-col overflow-y-auto relative overflow-hidden">
+
+      <!-- Avatar Container -->
+      <div class="relative w-full aspect-square bg-slate-200 group overflow-hidden">
+
+        <img
+          id="avatar-image"
+          src="michael.png"
+          alt="Patient Avatar"
+          class="w-full h-full object-cover transition-opacity duration-300"
+          loading="lazy"
+          decoding="async"
+          onerror="this.onerror=null; this.src=window.__missingImgSvg('Missing avatar');"
+        />
+
+        <!-- Clinical Overlay -->
+        <div class="absolute inset-0 bg-black/80 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 z-10 p-6 text-center"
+             id="clinical-overlay">
+          <div class="w-full h-48 bg-black mb-4 rounded-lg overflow-hidden border border-white/20 relative">
+            <!-- Controls (absolute overlays; does not change layout) -->
+            <div class="absolute top-2 left-2 right-2 flex items-center justify-between z-20 pointer-events-auto">
+              <div class="inline-flex rounded-full bg-black/35 backdrop-blur border border-white/10 p-1 gap-1">
+                <button id="btn-view-scalp"
+                        class="px-2.5 py-1 rounded-full text-[11px] font-bold text-white/80 hover:text-white hover:bg-white/10 transition"
+                        type="button"
+                        onclick="setClinicalView('scalp')">Scalp View</button>
+                <button id="btn-view-post"
+                        class="px-2.5 py-1 rounded-full text-[11px] font-bold text-white/80 hover:text-white hover:bg-white/10 transition"
+                        type="button"
+                        onclick="setClinicalView('post')">Postauricular View</button>
+              </div>
+
+              <span class="text-[10px] uppercase font-black tracking-widest bg-blue-600/90 text-white px-2.5 py-1 rounded-full border border-white/15">
+                BSA <span id="bsa-pct">—</span>%
+              </span>
+            </div>
+
+            <img
+  class="w-full h-full object-cover opacity-90 clinical-zoom"
+  id="clinical-image"
+  src="images/clinical-hairline-scalp.png"
+  alt="Clinical Finding"
+  loading="lazy"
+  decoding="async"
+  onerror="this.onerror=null; this.src=window.__missingImgSvg('Missing clinical image');"
+/>
+
+            <!-- Hotspots layer -->
+            <div class="absolute inset-0 z-10 pointer-events-none" id="hotspot-layer"></div>
+
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 z-20">
+              <span class="text-xs text-white bg-red-600 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Clinical Finding</span>
+            </div>
+          </div>
+
+          <h3 class="text-white font-bold text-xl mb-2" id="clinical-title">Clinical Finding</h3>
+          <p class="text-slate-300 text-sm leading-relaxed" id="clinical-desc">Description</p>
+
+          <button class="mt-6 px-4 py-2 bg-white text-slate-900 rounded-full font-semibold text-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
+                  id="btn-return">
+            <span class="material-symbols-outlined text-lg">arrow_back</span> Return to Face-to-Face
+          </button>
+        </div>
+
+        <!-- Examine Button -->
+        <button class="absolute bottom-4 right-4 bg-white/85 backdrop-blur text-slate-900 px-4 py-2 rounded-full shadow-lg border border-white/60 font-semibold text-sm flex items-center gap-2 hover:bg-white hover:scale-105 transition-all z-0 group-hover:translate-y-0 translate-y-2 opacity-90 group-hover:opacity-100"
+                id="btn-examine">
+          <span class="material-symbols-outlined text-blue-600">visibility</span>
+          Examine Patient
+        </button>
+      </div>
+
+      <!-- Patient Vitals/Details -->
+      <div class="p-6 flex-1">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-slate-900" id="patient-name">Michael</h2>
+            <p class="text-slate-500 text-sm" id="patient-demographics">35, Male, Mechanic</p>
+          </div>
+          <div class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded uppercase tracking-wide"
+               id="vibe-badge">Guarded</div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-white/92 p-4 rw-card-soft">
+            <div class="text-xs font-bold text-slate-400 uppercase mb-1">Chief Complaint</div>
+            <p class="text-sm text-slate-700 italic" id="patient-complaint">"I don't have time for this."</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white/92 p-3 rw-card-soft">
+              <div class="text-xs text-slate-400">Duration</div>
+              <div class="font-medium text-slate-700" id="patient-duration">5 Years</div>
+            </div>
+            <div class="bg-white/92 p-3 rw-card-soft">
+              <div class="text-xs text-slate-400">Previous Rx</div>
+              <div class="font-medium text-slate-700" id="patient-rx">Topicals</div>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <div class="flex items-center gap-2 text-sm font-semibold text-slate-800 mb-2">
+              <span class="material-symbols-outlined text-slate-400">psychology</span>
+              Patient Mindset
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed" id="patient-mindset">
+              Mindset text
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Simulation Interaction -->
+    <section class="flex-1 flex flex-col bg-white/80 backdrop-blur border border-slate-200 md:rounded-2xl md:shadow-sm relative overflow-hidden">
+      <!-- Learning Flow Section -->
+      <div class="border-b border-slate-200 bg-white/85 backdrop-blur px-4 md:px-6 py-4">
+        <div class="max-w-5xl mx-auto flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div class="text-[11px] font-black tracking-[0.18em] uppercase text-slate-400">Learning Flow</div>
+            <div class="text-sm text-slate-600">Move through content, consult, assessment, and resources like a real education platform.</div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 text-sm font-semibold tracking-wide" id="module-tabs">
+            <button class="module-tab active" data-tab="content" type="button">
+              <span class="material-symbols-outlined text-base">menu_book</span>
+              <span>Content</span>
+            </button>
+            <button class="module-tab" data-tab="consult" type="button">
+              <span class="material-symbols-outlined text-base">person</span>
+              <span>Patient Consult</span>
+            </button>
+            <button class="module-tab" data-tab="competence" type="button">
+              <span class="material-symbols-outlined text-base">quiz</span>
+              <span>Competence Check</span>
+            </button>
+            <button class="module-tab" data-tab="resources" type="button">
+              <span class="material-symbols-outlined text-base">library_books</span>
+              <span>Resources</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Module Stage -->
+      <div class="flex-1 overflow-y-auto p-4 md:p-6 bg-gradient-to-b from-slate-50 to-slate-100 scrollbar-hide" id="chat-container"></div>
+
+<!-- Interactive Controls -->
+      <div class="border-t border-slate-200 p-6 bg-white/85 backdrop-blur z-20">
+        <div class="max-w-3xl mx-auto" id="interaction-area">
+          <button class="w-full py-3 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 rw-btn-primary"
+                  id="btn-start">
+            Start Consultation
+            <span class="material-symbols-outlined">play_arrow</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Completion Modal -->
+<div class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4" id="completion-modal">
+  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform scale-95 opacity-0 transition-all duration-300"
+       id="modal-content">
+    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+      <span class="material-symbols-outlined text-green-600 text-4xl">check_circle</span>
+    </div>
+    <h2 class="text-2xl font-bold text-center text-slate-900 mb-2">Session Complete!</h2>
+    <p class="text-center text-slate-600 mb-6">You earned 0.5 CME credits.</p>
+
+    <div class="bg-slate-50 rounded-lg p-4 mb-6">
+      <h4 class="text-sm font-bold text-slate-700 mb-2">Key Takeaway</h4>
+      <p class="text-sm text-slate-600" id="modal-takeaway">Takeaway text</p>
+    </div>
+
+    <button class="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+            id="btn-next">
+      Proceed to Next Session
+    </button>
+  </div>
+</div>
+
+<script>
+  // --- tiny helper for missing images (so it still "works" even if you haven't added all files yet)
+  window.__missingImgSvg = (label) => {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800">
+      <rect width="100%" height="100%" fill="#e2e8f0"/>
+      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+        fill="#475569" font-family="Arial" font-size="22">${label}</text>
+    </svg>`;
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+  };
+
+  // --- Local assets only (no /gen or /image routes)
+  const sessions = [
+    {
+      id: 1, title: "The Hidden Struggle",
+      patient: {
+        name: "Michael", age: 35, job: "Male, Mechanic", vibe: "Guarded",
+        avatarSrc: "michael.png",
+        clinicalSrc: "images/clinical-hairline-scalp.png",
+        clinicalTitle: "Scalp Psoriasis",
+        clinicalDesc: "Scaling along the hairline and behind the ears.",
+
+clinicalViews: {
+  scalp: {
+    src: "images/clinical-hairline-scalp.png",
+    bsa: 3,
+    hotspots: [
+      { x: 50, y: 26, label: "Frontal hairline", note: "Erythematous plaque with scale along the frontal hairline." },
+      { x: 28, y: 36, label: "Left temple", note: "Scaling at the temple region—assess extent and pruritus." },
+      { x: 72, y: 36, label: "Right temple", note: "Check for plaques extending into hair-bearing areas." }
+    ]
+  },
+  post: {
+    src: "images/clinical-hairline-postauricular.png",
+    bsa: 2,
+    hotspots: [
+      { x: 18, y: 56, label: "Behind left ear", note: "Postauricular scaling—common hidden site impacting QoL." },
+      { x: 82, y: 56, label: "Behind right ear", note: "Look for fissuring, erythema, and irritation." }
+    ]
+  }
+},
+        complaint: "I'm just here because my wife made me come. It's a small patch.",
+        duration: "3 Years",
+        rx: "OTC Hydrocortisone",
+        mindset: "Embarrassed and minimizing symptoms to leave quickly."
+      },
+      scenario: {
+        intro: "Michael sits on the edge of the table, cap pulled low. He insists his skin is 'fine'.",
+        steps: [
+          { id:"start",
+            bot:"Doc, look, I got a lot of work at the shop. Can we make this quick? I just need a refill for that cream.",
+            options:[
+              {text:"Sure, let's get you that refill and you can be on your way.", next:"fail_1"},
+              {text:"I notice you're wearing work gloves indoors. Are your hands bothering you?", next:"success_1"},
+              {text:"You seem stressed. Is work okay?", next:"neutral_1"}
+            ]
+          },
+          { id:"fail_1", bot:"Great, thanks.",
+            feedback:"INCOMPLETE: You refilled without examining hidden burden. Missed opportunity for systemic evaluation.",
+            isEnd:true, success:false
+          },
+          { id:"neutral_1", bot:"Work is work. Look, are we done?",
+            options:[
+              {text:"I need to examine your skin before I prescribe anything. Can you remove your hat and gloves?", next:"success_1"},
+              {text:"Okay, here's the refill.", next:"fail_1"}
+            ]
+          },
+          { id:"success_1",
+            bot:"(He sighs heavily and pulls off the gloves) ... I can't even hold a wrench anymore. It hurts like hell.",
+            feedback:"SUCCESS: You identified 'Hidden Burden'. Location + QoL impact can justify systemic therapy even with low BSA.",
+            isEnd:true, success:true,
+            takeaway:"Low BSA does not always mean mild disease. Assess quality of life and location."
+          }
+        ]
+      }
+    },
+
+    {
+      id: 2, title: "The Silent Sufferer",
+      patient: {
+        name: "Linda", age: 58, job: "Retired Teacher", vibe: "Resigned",
+        avatarSrc: "linda.png",
+        clinicalSrc: "images/clinical-psa-dactylitis.png",
+        clinicalTitle: "Psoriatic Arthritis",
+        clinicalDesc: "Dactylitis and swelling in DIP joints.",
+        complaint: "Oh, don't worry about me. I'm used to the skin problems.",
+        duration: "20 Years",
+        rx: "Intermittent Topicals",
+        mindset: "Warm but tired; attributes joint pain to 'getting old'."
+      },
+      scenario: {
+        intro: "Linda smiles politely. Her hands rest on her lap, slightly puffy.",
+        steps: [
+          { id:"start",
+            bot:"My skin is about the same, Doctor. I just use the moisturizer. I don't want to be a bother.",
+            options:[
+              {text:"Glad it's stable. Let's refill that.", next:"fail_2"},
+              {text:"Your fingers look a bit swollen—any morning stiffness?", next:"success_2"},
+              {text:"Do you want to try a stronger cream?", next:"neutral_2"}
+            ]
+          },
+          { id:"fail_2", bot:"Thank you, doctor.",
+            feedback:"MISSED DIAGNOSIS: You missed signs of PsA. Treating only skin ignores progressive joint disease.",
+            isEnd:true, success:false
+          },
+          { id:"neutral_2", bot:"No, the cream is fine. I don't like strong medicines.",
+            options:[
+              {text:"Fair enough—any joint pain or stiffness?", next:"success_2"},
+              {text:"Okay, see you in 6 months.", next:"fail_2"}
+            ]
+          },
+          { id:"success_2",
+            bot:"Actually... yes. It takes me an hour to get moving in the morning. I thought it was just age.",
+            feedback:"SUCCESS: You connected psoriasis with joint symptoms. Screening for PsA is mandatory.",
+            isEnd:true, success:true,
+            takeaway:"Ask about morning stiffness; look for dactylitis. Up to ~30% develop PsA."
+          }
+        ]
+      }
+    },
+
+    {
+      id: 3, title: "The Frustrated Techie",
+      patient: {
+        name: "David", age: 42, job: "Software Dev", vibe: "Exasperated",
+        avatarSrc: "david.png",
+        clinicalSrc: "images/clinical-elbows-premium.png",
+        clinicalTitle: "Plaque Psoriasis",
+        clinicalDesc: "Thick plaques on elbows/extensors; excoriations.",
+        clinicalViews: {
+  post: {
+    label: "Elbow View",
+    src: "images/clinical-elbows-premium.png",
+    bsa: 6,
+    hotspots: [
+      { x: 32, y: 52, label: "Extensor Plaque", note: "Well-demarcated erythematous plaque with thick silvery scale." },
+      { x: 40, y: 65, label: "Excoriations", note: "Linear excoriations from chronic pruritus." },
+      { x: 70, y: 55, label: "Symmetric Involvement", note: "Classic bilateral extensor distribution." }
+    ]
+  }
+},
+complaint: "Nothing works. I'm over it.",
+        duration: "10 Years",
+        rx: "High Potency Steroids",
+        mindset: "Frustrated with topical burden; near dropout."
+      },
+      scenario: {
+        intro: "David scratches his elbow through his hoodie. He looks exhausted.",
+        steps: [
+          { id:"start",
+            bot:"The cream is sticky, ruins my clothes, and the patch comes back when I stop. Is there any point?",
+            options:[
+              {text:"You just need to be more consistent.", next:"fail_3"},
+              {text:"I get it. It might be time to move beyond creams.", next:"success_3"},
+              {text:"Let's try a different cream formulation.", next:"neutral_3"}
+            ]
+          },
+          { id:"fail_3",
+            bot:"I'm trying! It's impossible to keep up.",
+            feedback:"THERAPEUTIC INERTIA: Don’t blame adherence when treatment burden is high. Consider escalation.",
+            isEnd:true, success:false
+          },
+          { id:"neutral_3",
+            bot:"If it's still messy, I won't use it.",
+            options:[ {text:"Let's discuss an oral or injectable option.", next:"success_3"} ]
+          },
+          { id:"success_3",
+            bot:"Wait, there are other options? I thought I was stuck with the grease forever.",
+            feedback:"SUCCESS: You recognized topical fatigue and need for escalation.",
+            isEnd:true, success:true,
+            takeaway:"If QoL is impaired and topicals fail (or burden is too high), escalate therapy."
+          }
+        ]
+      }
+    },
+
+    {
+      id: 4, title: "The Anxious Researcher",
+      patient: {
+        name: "Sarah", age: 29, job: "Graphic Designer", vibe: "Anxious",
+        avatarSrc: "sarah.png",
+        clinicalSrc: "images/clinical-mild-moderate.png",
+        clinicalTitle: "Mild–Moderate Psoriasis",
+        clinicalDesc: "Scattered plaques; distress out of proportion to BSA.",
+        clinicalViews: {
+  post: {
+    label: "Clinical View",
+    src: "images/clinical-mild-moderate.png",
+    bsa: 4,
+    hotspots: [
+      { x: 32, y: 46, label: "Scattered Plaque", note: "Small erythematous plaque with light scale—may look mild, but symptoms can be distressing." },
+      { x: 62, y: 50, label: "Low BSA Involvement", note: "Limited BSA involvement; assess QoL impact and patient concerns." }
+    ]
+  }
+},
+complaint: "Is this safe? I read online...",
+        duration: "1 Year",
+        rx: "None (Refused)",
+        mindset: "Phone in hand; fears side effects."
+      },
+      scenario: {
+        intro: "Sarah is clutching her phone. She’s been reading warnings online.",
+        steps: [
+          { id:"start",
+            bot:"I Googled it. It can cause serious stuff. My aunt had a clot. I’m scared.",
+            options:[
+              {text:"Don’t believe everything you read on Google.", next:"fail_4"},
+              {text:"That’s a valid concern. Let’s talk through mechanism + safety.", next:"success_4"},
+              {text:"We can do light therapy instead.", next:"neutral_4"}
+            ]
+          },
+          { id:"fail_4",
+            bot:"I’m not taking it.",
+            feedback:"FAILURE: Dismissing patient research destroys trust. Explain clearly and respectfully.",
+            isEnd:true, success:false
+          },
+          { id:"neutral_4",
+            bot:"I travel a lot. I can’t do light box sessions.",
+            options:[ {text:"Okay—let me explain the oral option safety profile.", next:"success_4"} ]
+          },
+          { id:"success_4",
+            bot:"So it’s not the same pathway as the scary ones? That… helps.",
+            feedback:"SUCCESS: You addressed concerns with mechanism + shared decision making.",
+            isEnd:true, success:true,
+            takeaway:"Don’t dismiss. Explain mechanism, risks, and monitoring in plain language."
+          }
+        ]
+      }
+    },
+
+    {
+      id: 5, title: "The Pragmatic Skeptic",
+      patient: {
+        name: "Robert", age: 50, job: "Construction Mgr", vibe: "Skeptical",
+        avatarSrc: "robert.png",
+        clinicalSrc: "images/clinical-extensive-plaques.png",
+        clinicalTitle: "Extensive Plaques",
+        clinicalDesc: "Large thick plaques on lower legs/back; highly visible.",
+        clinicalViews: {
+  post: {
+    label: "Clinical View",
+    src: "images/clinical-extensive-plaques.png",
+    bsa: 18,
+    hotspots: [
+      { x: 30, y: 55, label: "Extensive Plaque", note: "Large, thick erythematous plaques with dense silvery scale on lower extremities." },
+      { x: 70, y: 50, label: "Highly Visible Area", note: "Prominent involvement on back—high psychosocial impact." }
+    ]
+  }
+},
+complaint: "Prove it to me. I want results.",
+        duration: "15 Years",
+        rx: "Biologics (Failed 2)",
+        mindset: "Wants durability; tired of switching meds."
+      },
+      scenario: {
+        intro: "Robert leans back, arms crossed. He wants numbers, not vibes.",
+        steps: [
+          { id:"start",
+            bot:"They work for a year, then stop. Does this new option actually last?",
+            options:[
+              {text:"It’s a good option—we should try it.", next:"fail_5"},
+              {text:"We have longer-term data showing durability beyond a year.", next:"success_5"},
+              {text:"Nothing lasts forever.", next:"fail_5"}
+            ]
+          },
+          { id:"fail_5",
+            bot:"Sounds like a guess. I’ll think about it.",
+            feedback:"FAILURE: Data-driven patient needs specifics and expectations.",
+            isEnd:true, success:false
+          },
+          { id:"success_5",
+            bot:"Alright. If the numbers back it up, I’m listening.",
+            feedback:"SUCCESS: You used evidence-based framing (durability) to meet his decision style.",
+            isEnd:true, success:true,
+            takeaway:"For treatment-experienced patients, discuss durability and realistic expectations."
+          }
+        ]
+      }
+    },
+
+    {
+      id: 6, title: "High-Stakes Professional",
+      patient: {
+        name: "Elena", age: 38, job: "Pharma Sales", vibe: "Urgent",
+        avatarSrc: "elena.png",
+        clinicalSrc: "images/clinical-visible-wrist.png",
+        clinicalTitle: "Visible Wrist Plaque",
+        clinicalDesc: "Small plaque but highly visible during handshakes.",
+        clinicalViews: {
+  post: {
+    label: "Clinical View",
+    src: "images/clinical-visible-wrist.png",
+    bsa: 2,
+    hotspots: [
+      { x: 45, y: 50, label: "Visible Wrist Plaque", note: "Small erythematous plaque with scaling—highly visible during handshakes." },
+      { x: 60, y: 45, label: "High Psychosocial Impact", note: "Even low BSA involvement can carry disproportionate professional impact." }
+    ]
+  }
+},
+complaint: "I need this fixed yesterday, but no needles.",
+        duration: "4 Years",
+        rx: "Topicals (Failed)",
+        mindset: "Needs fast efficacy; needle phobia."
+      },
+      scenario: {
+        intro: "Elena checks her watch. She’s polished but anxious.",
+        steps: [
+          { id:"start",
+            bot:"I can’t do injections. I’ll faint. But I need results fast—what do we do?",
+            options:[
+              {text:"If you can’t do injections, we’ll use a slow older option.", next:"fail_6"},
+              {text:"You need a biologic. You’ll get used to needles.", next:"fail_6"},
+              {text:"Let’s discuss high-efficacy oral options and monitoring.", next:"success_6"}
+            ]
+          },
+          { id:"fail_6",
+            bot:"Then maybe I’ll just stick to creams.",
+            feedback:"FAILURE: You didn’t match therapy to lifestyle/phobia + timeline needs.",
+            isEnd:true, success:false
+          },
+          { id:"success_6",
+            bot:"A pill I can handle. If we monitor me, I’m in. Let’s do it.",
+            feedback:"SUCCESS: Shared decision-making. Matched delivery to patient needs.",
+            isEnd:true, success:true,
+            takeaway:"Match delivery (pill vs shot) to patient lifestyle and fears to improve adherence."
+          }
+        ]
+      }
+    }
+  ];
+
+  // --- State ---
+  let currentSessionIdx = 0;
+  let currentStep = null;
+  let activeTab = 'content';
+  let completedSessions = [];
+  let consultedSessions = [];
+  let quizSelections = {};
+  let quizPassedSessions = [];
+
+  // --- DOM ---
+  const dom = {
+    sidebar: document.getElementById('sidebar'),
+    sessionList: document.getElementById('session-list'),
+    avatar: document.getElementById('avatar-image'),
+    clinicalOverlay: document.getElementById('clinical-overlay'),
+    clinicalImg: document.getElementById('clinical-image'),
+    clinicalTitle: document.getElementById('clinical-title'),
+    clinicalDesc: document.getElementById('clinical-desc'),
+    ptName: document.getElementById('patient-name'),
+    ptDemo: document.getElementById('patient-demographics'),
+    ptVibe: document.getElementById('vibe-badge'),
+    ptComplaint: document.getElementById('patient-complaint'),
+    ptDuration: document.getElementById('patient-duration'),
+    ptRx: document.getElementById('patient-rx'),
+    ptMindset: document.getElementById('patient-mindset'),
+    chatContainer: document.getElementById('chat-container'),
+    interactionArea: document.getElementById('interaction-area'),
+    progressBar: document.getElementById('progress-bar'),
+    completionModal: document.getElementById('completion-modal'),
+    modalTakeaway: document.getElementById('modal-takeaway'),
+    modalContent: document.getElementById('modal-content'),
+    moduleTabs: document.querySelectorAll('[data-tab]'),
+    btnMenu: document.getElementById('btn-menu'),
+    btnClose: document.getElementById('btn-close'),
+    btnExamine: document.getElementById('btn-examine'),
+    btnReturn: document.getElementById('btn-return'),
+    btnNext: document.getElementById('btn-next')
+  };
+
+
+// --- Clinical overlay views (toggles + hotspots + BSA) ---
+function getCurrentClinicalViews() {
+  const s = sessions[currentSessionIdx];
+  return (s && s.patient && s.patient.clinicalViews) ? s.patient.clinicalViews : null;
+}
+
+function renderHotspots(hotspots) {
+  const layer = document.getElementById('hotspot-layer');
+  if (!layer) return;
+  layer.innerHTML = '';
+  layer.classList.remove('pointer-events-none');
+  layer.classList.add('pointer-events-auto');
+
+  hotspots.forEach((h) => {
+    const hs = document.createElement('div');
+    hs.className = 'hotspot';
+    hs.style.left = (h.x ?? 50) + '%';
+    hs.style.top  = (h.y ?? 50) + '%';
+
+    const tip = document.createElement('div');
+    tip.className = 'tooltip';
+    tip.style.left = hs.style.left;
+    tip.style.top  = hs.style.top;
+    tip.innerHTML = `
+      <div class="font-bold text-white mb-1">${h.label || 'Finding'}</div>
+      <div class="text-slate-200">${h.note || ''}</div>
+    `;
+
+    layer.appendChild(hs);
+    layer.appendChild(tip);
+  });
+}
+
+function setClinicalView(viewKey) {
+  const views = getCurrentClinicalViews();
+  const btnScalp = document.getElementById('btn-view-scalp');
+  const btnPost  = document.getElementById('btn-view-post');
+  const controlsWrap = btnScalp ? btnScalp.closest('.inline-flex') : null;
+
+  // No views: hide controls and clear UI
+  if (!views) {
+    if (controlsWrap) controlsWrap.style.display = 'none';
+    renderHotspots([]);
+    const bsaEl = document.getElementById('bsa-pct');
+    if (bsaEl) bsaEl.textContent = '—';
+    return;
+  }
+
+  const hasScalp = !!views.scalp;
+  const hasPost  = !!views.post;
+
+  // Only show toggle pills if BOTH views exist
+  if (controlsWrap) {
+    controlsWrap.style.display = (hasScalp && hasPost) ? 'inline-flex' : 'none';
+  }
+
+  // Choose requested key if available, otherwise pick first available
+  let chosenKey = (viewKey && views[viewKey]) ? viewKey : null;
+  if (!chosenKey) chosenKey = hasScalp ? 'scalp' : (hasPost ? 'post' : Object.keys(views)[0]);
+
+  if (!chosenKey || !views[chosenKey]) {
+    renderHotspots([]);
+    const bsaEl = document.getElementById('bsa-pct');
+    if (bsaEl) bsaEl.textContent = '—';
+    return;
+  }
+
+  // Update labels/active state only in multi-view sessions
+  if (btnScalp && btnPost && hasScalp && hasPost) {
+    btnScalp.textContent = views.scalp?.label || "View A";
+    btnPost.textContent  = views.post?.label  || "View B";
+    btnScalp.classList.toggle('view-active', chosenKey === 'scalp');
+    btnPost.classList.toggle('view-active', chosenKey === 'post');
+  }
+
+  dom.clinicalImg.src = views[chosenKey].src;
+  const bsaEl = document.getElementById('bsa-pct');
+  if (bsaEl) bsaEl.textContent = (views[chosenKey].bsa ?? '—');
+  renderHotspots(views[chosenKey].hotspots || []);
+}
+
+
+  
+  function getLearningContent(data) {
+    const commonObjectives = [
+      'Recognize how visible location and quality-of-life burden can outweigh low BSA alone.',
+      'Use patient-centered questioning to uncover treatment barriers, fears, and hidden burden.',
+      'Match treatment escalation and education strategy to real-world patient needs.'
+    ];
+
+    const byId = {
+      1: {
+        title: 'Low BSA, High Burden',
+        summary: 'This case teaches why hidden sites, pain, and embarrassment can make “small” psoriasis clinically significant.',
+        pearls: ['Assess hidden areas like hairline and postauricular regions.', 'Ask how disease affects work, confidence, and function.', 'Do not rely on surface area alone to judge severity.']
+      },
+      2: {
+        title: 'Screen for Psoriatic Arthritis',
+        summary: 'This case focuses on recognizing psoriatic arthritis clues that patients may normalize or dismiss.',
+        pearls: ['Look for swollen digits and morning stiffness.', 'Ask specifically about function and joint pain.', 'Skin stability does not rule out progressive joint disease.']
+      },
+      3: {
+        title: 'Topical Fatigue and Escalation',
+        summary: 'This case highlights the burden of topical therapy and when it is time to move beyond creams.',
+        pearls: ['Explore adherence barriers before labeling a patient noncompliant.', 'Treatment burden can be a clinical reason to escalate.', 'Shared decision making improves follow-through.']
+      },
+      4: {
+        title: 'Address Safety Anxiety',
+        summary: 'This case teaches how to respond when patients arrive influenced by online safety concerns.',
+        pearls: ['Validate the concern first.', 'Explain mechanism and monitoring in plain language.', 'Trust is built through respectful education, not dismissal.']
+      },
+      5: {
+        title: 'Evidence for the Skeptical Patient',
+        summary: 'This case shows how durability and evidence-based framing help treatment-experienced patients decide.',
+        pearls: ['Lead with outcomes and durability data.', 'Set realistic expectations early.', 'Match your communication style to the patient’s decision style.']
+      },
+      6: {
+        title: 'Fast, Practical, Lifestyle-Matched Care',
+        summary: 'This case focuses on choosing a therapy pathway that fits urgency, visibility burden, and delivery preference.',
+        pearls: ['Delivery method matters to adherence.', 'Needle phobia is a real treatment barrier.', 'Visible disease can create outsized professional harm.']
+      }
+    };
+
+    return {
+      objectives: commonObjectives,
+      ...(byId[data.id] || byId[1])
+    };
+  }
+
+  function getQuizForSession(data) {
+    const quizzes = {
+      1: [
+        { q: 'What was the most important reason to explore treatment escalation in Michael?', choices: ['His age', 'Low BSA alone', 'Hidden burden and work impact', 'Because OTC creams are never appropriate'], answer: 2 },
+        { q: 'Which clinical site in this case can easily be missed without direct examination?', choices: ['Palm', 'Postauricular area', 'Toenail matrix', 'Lower back'], answer: 1 },
+        { q: 'Best takeaway from this consult?', choices: ['Quick refills build trust', 'Low BSA always means mild disease', 'Quality of life should be assessed directly', 'Joint pain matters more than skin burden every time'], answer: 2 }
+      ],
+      2: [
+        { q: 'Which symptom should raise concern for psoriatic arthritis?', choices: ['Night sweats', 'Morning stiffness', 'Dry eyes alone', 'Weight gain'], answer: 1 },
+        { q: 'What physical clue was most important in Linda’s case?', choices: ['Hair loss', 'Dactylitis-like swelling', 'Facial flushing', 'Ankle edema'], answer: 1 },
+        { q: 'What is the best next-step mindset?', choices: ['Treat skin only', 'Assume it is aging', 'Screen for joint disease', 'Wait until the next visit'], answer: 2 }
+      ],
+      3: [
+        { q: 'What concept does David’s case best illustrate?', choices: ['Topical fatigue', 'Diagnostic uncertainty', 'Medication allergy', 'Off-label use'], answer: 0 },
+        { q: 'Which response is most patient-centered?', choices: ['You need to try harder', 'Let’s discuss a therapy beyond creams', 'Stop treatment entirely', 'Use the same product longer'], answer: 1 },
+        { q: 'Why is treatment burden clinically relevant?', choices: ['It changes coding only', 'It can reduce real-world adherence', 'It replaces efficacy', 'It matters only in severe disease'], answer: 1 }
+      ],
+      4: [
+        { q: 'How should a clinician respond to online safety fears?', choices: ['Dismiss them quickly', 'Validate concerns and explain mechanism', 'Avoid discussing risks', 'Change the subject'], answer: 1 },
+        { q: 'What communication error harms trust most?', choices: ['Using analogies', 'Checking understanding', 'Dismissing patient research', 'Giving plain-language safety counseling'], answer: 2 },
+        { q: 'What is the best decision-making framework here?', choices: ['Paternalism', 'Shared decision making', 'Minimal disclosure', 'Urgent escalation without discussion'], answer: 1 }
+      ],
+      5: [
+        { q: 'What mattered most to Robert?', choices: ['A lower copay', 'Durability data', 'A topical foam', 'Cosmetic vehicle choice'], answer: 1 },
+        { q: 'Best communication strategy for this patient?', choices: ['General reassurance', 'Evidence-based specifics', 'Avoid expectations', 'Motivational interviewing only'], answer: 1 },
+        { q: 'Which phrasing best fits his decision style?', choices: ['Trust me, it works', 'Let’s review long-term outcomes and durability', 'This option is trendy', 'Nothing lasts forever'], answer: 1 }
+      ],
+      6: [
+        { q: 'What barrier most shaped Elena’s treatment choice?', choices: ['Topical allergy', 'Needle phobia', 'Transportation', 'Language access'], answer: 1 },
+        { q: 'Why can low BSA still demand urgent attention?', choices: ['Only because of reimbursement', 'Visible disease may have high professional impact', 'Low BSA predicts arthritis', 'It always requires injectables'], answer: 1 },
+        { q: 'Most appropriate care principle here?', choices: ['Ignore preference to maximize efficacy', 'Match delivery and efficacy to lifestyle needs', 'Delay treatment until symptoms worsen', 'Use the slowest option available'], answer: 1 }
+      ]
+    };
+    return quizzes[data.id] || quizzes[1];
+  }
+
+  function getResourcesForSession(data) {
+    return [
+      { icon: 'description', title: 'Clinical Focus Summary', desc: `A concise brief for ${data.title} with key interviewing and treatment themes.`, meta: 'Quick-reference card' },
+      { icon: 'stethoscope', title: 'Faculty Talking Points', desc: 'Plain-language phrases clinicians can use during patient counseling.', meta: 'Facilitator aid' },
+      { icon: 'analytics', title: 'Outcome Measurement Prompt Set', desc: 'Suggested prompts for confidence, burden, function, and treatment readiness.', meta: 'Assessment support' },
+      { icon: 'menu_book', title: 'Guideline Integration Notes', desc: 'How to connect this case to evidence-based treatment escalation and real-world practice.', meta: 'Clinical alignment' }
+    ];
+  }
+
+  function setActiveTabUI() {
+    dom.moduleTabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === activeTab));
+  }
+
+  function renderContentTab() {
+    const data = sessions[currentSessionIdx];
+    const content = getLearningContent(data);
+    dom.chatContainer.innerHTML = `
+      <div class="module-shell space-y-5 fade-in">
+        <div class="module-card p-6 md:p-8">
+          <span class="pill-kicker"><span class="material-symbols-outlined text-sm">school</span> Content</span>
+          <div class="mt-4 flex flex-col gap-5 lg:flex-row lg:items-start">
+            <div class="flex-1">
+              <h3 class="text-3xl font-extrabold text-slate-900 leading-tight">${content.title}</h3>
+              <p class="mt-3 text-slate-600 text-base leading-7">${content.summary}</p>
+              <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                ${content.objectives.map((item, idx) => `
+                  <div class="rw-card-soft bg-slate-50/90 p-4">
+                    <div class="text-[11px] font-black uppercase tracking-[0.16em] text-blue-600">Objective ${idx + 1}</div>
+                    <p class="mt-2 text-sm text-slate-700 leading-6">${item}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="w-full lg:w-[19rem] module-card p-5 bg-gradient-to-br from-white to-blue-50/70">
+              <div class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Session Snapshot</div>
+              <div class="mt-3 text-xl font-bold text-slate-900">${data.patient.name}</div>
+              <div class="text-sm text-slate-500">${data.patient.age}, ${data.patient.job}</div>
+              <div class="mt-4 space-y-3 text-sm text-slate-700">
+                <div><span class="font-semibold text-slate-900">Chief concern:</span> ${data.patient.complaint}</div>
+                <div><span class="font-semibold text-slate-900">Clinical focus:</span> ${data.patient.clinicalTitle}</div>
+                <div><span class="font-semibold text-slate-900">Mindset:</span> ${data.patient.mindset}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
+          <div class="module-card p-6">
+            <div class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Key Clinical Pearls</div>
+            <div class="mt-4 space-y-3">
+              ${content.pearls.map((item, idx) => `
+                <div class="flex gap-3 p-4 rounded-2xl bg-slate-50/90 border border-slate-200">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-700 shrink-0 flex items-center justify-center font-bold text-sm">${idx + 1}</div>
+                  <p class="text-sm leading-6 text-slate-700">${item}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="module-card p-6">
+            <div class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Recommended Flow</div>
+            <div class="mt-4 space-y-3 text-sm text-slate-700">
+              <div class="p-4 rounded-2xl bg-blue-50 border border-blue-100"><span class="font-semibold text-slate-900">1. Review content</span><br/>Understand the clinical challenge and what to watch for in the encounter.</div>
+              <div class="p-4 rounded-2xl bg-white border border-slate-200"><span class="font-semibold text-slate-900">2. Run the patient consult</span><br/>Use your questioning strategy and uncover the hidden issue.</div>
+              <div class="p-4 rounded-2xl bg-white border border-slate-200"><span class="font-semibold text-slate-900">3. Complete the competence check</span><br/>Validate clinical reasoning and reinforce the main teaching point.</div>
+            </div>
+            <button class="mt-5 w-full py-3 text-white font-semibold rounded-xl rw-btn-primary flex items-center justify-center gap-2" type="button" onclick="switchTab('consult')">
+              Start Patient Consult <span class="material-symbols-outlined">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    dom.interactionArea.innerHTML = `<div class="module-shell"><div class="text-xs uppercase tracking-[0.18em] text-slate-400 font-black">Module active: Content</div></div>`;
+  }
+
+  function renderConsultIntro() {
+    const data = sessions[currentSessionIdx];
+    dom.chatContainer.innerHTML = `
+      <div class="flex gap-4 max-w-2xl mx-auto fade-in">
+        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-blue-600">medical_services</span>
+        </div>
+        <div class="bg-white/92 p-4 rounded-2xl rounded-tl-none bubble-bot text-slate-700">
+          <p class="font-semibold text-blue-900 mb-1">Clinical Scenario</p>
+          <p>${data.scenario.intro}</p>
+        </div>
+      </div>
+    `;
+    dom.interactionArea.innerHTML = `
+      <div class="module-shell">
+        <button class="w-full py-3 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 rw-btn-primary"
+                id="btn-start-inner" type="button">
+          Start Consultation
+          <span class="material-symbols-outlined">play_arrow</span>
+        </button>
+      </div>
+    `;
+    document.getElementById('btn-start-inner').addEventListener('click', startSession);
+  }
+
+  function renderResourcesTab() {
+    const data = sessions[currentSessionIdx];
+    const resources = getResourcesForSession(data);
+    dom.chatContainer.innerHTML = `
+      <div class="module-shell space-y-5 fade-in">
+        <div class="module-card p-6 md:p-8">
+          <span class="pill-kicker"><span class="material-symbols-outlined text-sm">library_books</span> Resources</span>
+          <h3 class="mt-4 text-3xl font-extrabold text-slate-900">Case Support Materials</h3>
+          <p class="mt-3 text-slate-600 leading-7">These resources keep the tab useful even without external links. They function like faculty notes and evidence cards inside a commercial CME platform.</p>
+        </div>
+        <div class="grid gap-4">
+          ${resources.map((item) => `
+            <div class="resource-link module-card">
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 shrink-0 flex items-center justify-center">
+                  <span class="material-symbols-outlined">${item.icon}</span>
+                </div>
+                <div>
+                  <div class="font-bold text-slate-900">${item.title}</div>
+                  <div class="mt-1 text-sm text-slate-600 leading-6">${item.desc}</div>
+                  <div class="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">${item.meta}</div>
+                </div>
+              </div>
+              <div class="text-blue-700 text-sm font-semibold">Available in-module</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    dom.interactionArea.innerHTML = `<div class="module-shell"><button class="w-full py-3 rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50" type="button" onclick="switchTab('consult')">Return to Patient Consult</button></div>`;
+  }
+
+  function renderCompetenceTab() {
+    const data = sessions[currentSessionIdx];
+    const quiz = getQuizForSession(data);
+    const selections = quizSelections[currentSessionIdx] || [];
+    const consultDone = consultedSessions.includes(currentSessionIdx);
+    const passed = quizPassedSessions.includes(currentSessionIdx);
+
+    if (!consultDone && !passed) {
+      dom.chatContainer.innerHTML = `
+        <div class="module-shell fade-in">
+          <div class="module-card p-8 text-center">
+            <div class="w-16 h-16 rounded-full bg-blue-100 text-blue-700 mx-auto flex items-center justify-center">
+              <span class="material-symbols-outlined text-3xl">quiz</span>
+            </div>
+            <h3 class="mt-5 text-3xl font-extrabold text-slate-900">Complete the consult first</h3>
+            <p class="mt-3 text-slate-600 max-w-2xl mx-auto leading-7">The competence check is meant to validate what the learner picked up during the patient interaction. Run the consult, then come back here for the assessment.</p>
+          </div>
+        </div>
+      `;
+      dom.interactionArea.innerHTML = `<div class="module-shell"><button class="w-full py-3 text-white font-semibold rounded-xl rw-btn-primary" type="button" onclick="switchTab('consult')">Go to Patient Consult</button></div>`;
+      return;
+    }
+
+    dom.chatContainer.innerHTML = `
+      <div class="module-shell space-y-5 fade-in">
+        <div class="module-card p-6 md:p-8">
+          <span class="pill-kicker"><span class="material-symbols-outlined text-sm">workspace_premium</span> Competence Check</span>
+          <h3 class="mt-4 text-3xl font-extrabold text-slate-900">Validate Clinical Reasoning</h3>
+          <p class="mt-3 text-slate-600 leading-7">Answer all three questions. A score of 2/3 or better marks this case complete.</p>
+        </div>
+        <div class="space-y-4">
+          ${quiz.map((item, qIdx) => `
+            <div class="module-card p-5">
+              <div class="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Question ${qIdx + 1}</div>
+              <h4 class="mt-2 text-lg font-bold text-slate-900 leading-7">${item.q}</h4>
+              <div class="mt-4 grid gap-3">
+                ${item.choices.map((choice, cIdx) => `
+                  <button class="quiz-choice text-left p-4 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition ${selections[qIdx] === cIdx ? 'selected' : ''}" type="button" data-qidx="${qIdx}" data-cidx="${cIdx}">
+                    ${choice}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    dom.chatContainer.querySelectorAll('.quiz-choice').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qIdx = Number(btn.dataset.qidx);
+        const cIdx = Number(btn.dataset.cidx);
+        const arr = [...(quizSelections[currentSessionIdx] || [])];
+        arr[qIdx] = cIdx;
+        quizSelections[currentSessionIdx] = arr;
+        renderCompetenceTab();
+      });
+    });
+
+    const ready = selections.filter(v => v !== undefined).length === quiz.length;
+    dom.interactionArea.innerHTML = `
+      <div class="module-shell space-y-3">
+        <button class="w-full py-3 rounded-xl font-semibold ${ready ? 'rw-btn-primary text-white' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}" ${ready ? '' : 'disabled'} id="btn-submit-quiz" type="button">Submit Competence Check</button>
+        <button class="w-full py-3 rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50" type="button" onclick="switchTab('resources')">Open Resources</button>
+      </div>
+    `;
+    const submitBtn = document.getElementById('btn-submit-quiz');
+    if (submitBtn) submitBtn.addEventListener('click', submitCompetenceCheck);
+  }
+
+  function submitCompetenceCheck() {
+    const data = sessions[currentSessionIdx];
+    const quiz = getQuizForSession(data);
+    const selections = quizSelections[currentSessionIdx] || [];
+    let score = 0;
+
+    dom.chatContainer.querySelectorAll('.quiz-choice').forEach(btn => {
+      const qIdx = Number(btn.dataset.qidx);
+      const cIdx = Number(btn.dataset.cidx);
+      btn.classList.remove('selected');
+      if (quiz[qIdx].answer === cIdx) {
+        btn.classList.add('correct');
+      } else if (selections[qIdx] === cIdx) {
+        btn.classList.add('incorrect');
+      }
+    });
+
+    quiz.forEach((item, idx) => { if (selections[idx] === item.answer) score += 1; });
+    const passed = score >= 2;
+    if (passed && !quizPassedSessions.includes(currentSessionIdx)) quizPassedSessions.push(currentSessionIdx);
+    if (passed && !completedSessions.includes(currentSessionIdx)) completedSessions.push(currentSessionIdx);
+    renderSessionList();
+
+    dom.interactionArea.innerHTML = `
+      <div class="module-shell">
+        <div class="p-5 rounded-2xl ${passed ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'} fade-in">
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined ${passed ? 'text-green-600' : 'text-amber-600'} text-3xl">${passed ? 'check_circle' : 'restart_alt'}</span>
+            <div class="flex-1">
+              <h3 class="font-bold text-lg ${passed ? 'text-green-800' : 'text-amber-800'}">${passed ? 'Competence achieved' : 'Review and try again'}</h3>
+              <p class="mt-1 text-slate-700">You scored ${score} out of ${quiz.length}. ${passed ? 'This session is now marked complete.' : 'A score of at least 2 is needed to complete the case.'}</p>
+              <div class="mt-4 flex flex-col sm:flex-row gap-3">
+                <button class="px-5 py-3 rounded-xl font-semibold ${passed ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-800 text-white hover:bg-slate-900'}" type="button" onclick="${passed ? 'goToNextModuleOrResources()' : 'renderCompetenceTab()'}">${passed ? 'Continue' : 'Retry quiz'}</button>
+                <button class="px-5 py-3 rounded-xl font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50" type="button" onclick="switchTab('resources')">Open resources</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function goToNextModuleOrResources() {
+    if (currentSessionIdx < sessions.length - 1) {
+      loadSession(currentSessionIdx + 1);
+    } else {
+      switchTab('resources');
+      alert('Nice work — you completed the full module set.');
+    }
+  }
+
+  function switchTab(tabName) {
+    activeTab = tabName;
+    setActiveTabUI();
+    if (tabName === 'content') return renderContentTab();
+    if (tabName === 'consult') return renderConsultIntro();
+    if (tabName === 'competence') return renderCompetenceTab();
+    if (tabName === 'resources') return renderResourcesTab();
+  }
+
+
+function toggleSidebar(forceClose=false) {
+    if (forceClose) dom.sidebar.classList.add('-translate-x-full');
+    else dom.sidebar.classList.toggle('-translate-x-full');
+  }
+
+  function toggleExamine() {
+  const isVisible = dom.clinicalOverlay.classList.contains('opacity-100');
+
+  if (isVisible) {
+    dom.clinicalOverlay.classList.remove('opacity-100', 'pointer-events-auto', 'zoomed');
+    dom.clinicalOverlay.classList.add('opacity-0', 'pointer-events-none');
+
+    // reset helper UI
+    renderHotspots([]);
+    const bsaEl = document.getElementById('bsa-pct');
+    if (bsaEl) bsaEl.textContent = '—';
+
+    const btnScalp = document.getElementById('btn-view-scalp');
+    const btnPost  = document.getElementById('btn-view-post');
+    if (btnScalp && btnPost) {
+      btnScalp.classList.remove('view-active');
+      btnPost.classList.remove('view-active');
+    }
+    return;
+  }
+
+  dom.clinicalOverlay.classList.remove('opacity-0', 'pointer-events-none');
+  dom.clinicalOverlay.classList.add('opacity-100', 'pointer-events-auto');
+
+  // subtle zoom-in
+  setTimeout(() => dom.clinicalOverlay.classList.add('zoomed'), 20);
+
+  // init multi-view if available
+  const views = getCurrentClinicalViews();
+  if (views) setClinicalView('scalp');
+  else {
+    renderHotspots([]);
+    const bsaEl = document.getElementById('bsa-pct');
+    if (bsaEl) bsaEl.textContent = '—';
+  }
+}
+
+  function updateProgress() {
+    const pct = (completedSessions.length / sessions.length) * 100;
+    dom.progressBar.style.width = `${pct}%`;
+  }
+
+  function renderSessionList() {
+    dom.sessionList.innerHTML = sessions.map((s, idx) => {
+      const done = completedSessions.includes(idx);
+      const active = idx === currentSessionIdx;
+      return `
+        <button data-idx="${idx}"
+          class="w-full text-left p-3 rounded-lg text-sm mb-1 transition-colors flex items-center justify-between group
+                 ${active ? 'session-item active text-blue-800 font-semibold' : 'session-item text-slate-700'}">
+          <div class="flex items-center gap-3">
+            <div class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                        ${done ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'}">
+              ${done ? '✓' : idx + 1}
+            </div>
+            <span>${s.title}</span>
+          </div>
+        </button>
+      `;
+    }).join('');
+
+    dom.sessionList.querySelectorAll('button[data-idx]').forEach(btn => {
+      btn.addEventListener('click', () => loadSession(Number(btn.dataset.idx)));
+    });
+
+    updateProgress();
+  }
+
+  function loadSession(idx) {
+    currentSessionIdx = idx;
+    const data = sessions[idx];
+
+    renderSessionList();
+    if (window.innerWidth < 768) toggleSidebar(true);
+
+    // Update patient panel
+    dom.avatar.src = data.patient.avatarSrc;
+    dom.clinicalImg.src = data.patient.clinicalSrc;
+    dom.clinicalTitle.textContent = data.patient.clinicalTitle;
+    dom.clinicalDesc.textContent = data.patient.clinicalDesc;
+
+    // Clinical overlay controls: show toggles only if BOTH views exist; support single-view sessions
+    const btnScalp = document.getElementById('btn-view-scalp');
+    const btnPost  = document.getElementById('btn-view-post');
+    const viewsObj = data.patient.clinicalViews || null;
+    const hasViews = !!viewsObj;
+    const hasScalp = !!(viewsObj && viewsObj.scalp);
+    const hasPost  = !!(viewsObj && viewsObj.post);
+    const controlsWrap = btnScalp ? btnScalp.closest('.inline-flex') : null;
+
+    if (controlsWrap) {
+      controlsWrap.style.display = (hasViews && hasScalp && hasPost) ? 'inline-flex' : 'none';
+    }
+
+    if (btnScalp && btnPost) {
+      btnScalp.disabled = !(hasViews && hasScalp);
+      btnPost.disabled  = !(hasViews && hasPost);
+
+      btnScalp.classList.toggle('opacity-40', !(hasViews && hasScalp));
+      btnPost.classList.toggle('opacity-40', !(hasViews && hasPost));
+      btnScalp.classList.toggle('cursor-not-allowed', !(hasViews && hasScalp));
+      btnPost.classList.toggle('cursor-not-allowed', !(hasViews && hasPost));
+    }
+
+    renderHotspots([]);
+    const bsaEl = document.getElementById('bsa-pct');
+    if (bsaEl) {
+      const defaultKey = hasScalp ? 'scalp' : (hasPost ? 'post' : null);
+      bsaEl.textContent = defaultKey ? (viewsObj[defaultKey]?.bsa ?? '—') : '—';
+    }
+
+    dom.ptName.textContent = data.patient.name;
+    dom.ptDemo.textContent = `${data.patient.age}, ${data.patient.job}`;
+    dom.ptVibe.textContent = data.patient.vibe;
+    dom.ptComplaint.textContent = `"${data.patient.complaint}"`;
+    dom.ptDuration.textContent = data.patient.duration;
+    dom.ptRx.textContent = data.patient.rx;
+    dom.ptMindset.textContent = data.patient.mindset;
+
+    // Reset overlay
+    dom.clinicalOverlay.classList.remove('opacity-100', 'pointer-events-auto');
+    dom.clinicalOverlay.classList.add('opacity-0', 'pointer-events-none');
+
+    switchTab('content');
+  }
+
+  function addMessage(text, type) {
+    const isBot = type === 'bot';
+    const html = `
+      <div class="flex gap-4 max-w-2xl mx-auto fade-in ${isBot ? '' : 'flex-row-reverse'}">
+        <div class="w-10 h-10 rounded-full ${isBot ? 'bg-slate-200' : 'bg-blue-600'} flex items-center justify-center shrink-0">
+          ${isBot ? '<span class="material-symbols-outlined text-slate-600">person</span>'
+                 : '<span class="material-symbols-outlined text-white">stethoscope</span>'}
+        </div>
+        <div class="${isBot ? 'bg-white/92 text-slate-700 rounded-tl-none bubble-bot' : 'bg-blue-600 text-white rounded-tr-none bubble-user'} p-4 rounded-2xl shadow-sm border border-slate-100 max-w-[80%]">
+          <p>${text}</p>
+        </div>
+      </div>
+    `;
+    dom.chatContainer.insertAdjacentHTML('beforeend', html);
+    dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
+  }
+
+  function addTypingIndicator() {
+    const html = `
+      <div id="typing-indicator" class="flex gap-4 max-w-2xl mx-auto fade-in">
+        <div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-slate-600">person</span>
+        </div>
+        <div class="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 w-24 flex items-center gap-1 typing-indicator">
+          <span class="w-2 h-2 bg-slate-400 rounded-full block"></span>
+          <span class="w-2 h-2 bg-slate-400 rounded-full block"></span>
+          <span class="w-2 h-2 bg-slate-400 rounded-full block"></span>
+        </div>
+      </div>
+    `;
+    dom.chatContainer.insertAdjacentHTML('beforeend', html);
+    dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
+  }
+
+  function removeTypingIndicator() {
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+  }
+
+  function showOptions(options) {
+    dom.interactionArea.innerHTML = `
+      <div class="grid gap-3 fade-in">
+        ${options.map(opt => `
+          <button class="w-full text-left p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl hover:border-blue-500 hover:bg-blue-50 transition-all rw-card-soft font-medium text-slate-700 flex items-center justify-between group"
+                  data-next="${opt.next}">
+            <span>${opt.text}</span>
+            <span class="material-symbols-outlined opacity-0 group-hover:opacity-100 text-blue-500 transition-opacity">arrow_forward</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    dom.interactionArea.querySelectorAll('button[data-next]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const nextId = btn.dataset.next;
+        const text = btn.querySelector('span').textContent;
+        addMessage(text, 'user');
+        dom.interactionArea.innerHTML = '';
+        goToStep(nextId);
+      });
+    });
+  }
+
+  function showEndState(step) {
+    const isSuccess = step.success;
+
+    dom.interactionArea.innerHTML = `
+      <div class="p-6 rounded-xl ${isSuccess ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'} fade-in">
+        <div class="flex items-start gap-3">
+          <span class="material-symbols-outlined ${isSuccess ? 'text-green-600' : 'text-red-600'} text-3xl">
+            ${isSuccess ? 'check_circle' : 'cancel'}
+          </span>
+          <div>
+            <h3 class="font-bold ${isSuccess ? 'text-green-800' : 'text-red-800'} text-lg mb-2">
+              ${isSuccess ? 'Excellent Decision' : 'Clinical Misstep'}
+            </h3>
+            <p class="text-slate-700 mb-4">${step.feedback}</p>
+
+            ${isSuccess ? `
+              <button class="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                      id="btn-complete">
+                Complete Session
+              </button>
+            ` : `
+              <button class="px-6 py-2 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-900 transition-colors"
+                      id="btn-restart">
+                Restart Case
+              </button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (isSuccess) {
+      document.getElementById('btn-complete').addEventListener('click', () => completeSession(step.takeaway || ''));
+    } else {
+      document.getElementById('btn-restart').addEventListener('click', () => loadSession(currentSessionIdx));
+    }
+  }
+
+  function startSession() {
+    goToStep('start');
+  }
+
+  function goToStep(stepId) {
+    const data = sessions[currentSessionIdx];
+    const step = data.scenario.steps.find(s => s.id === stepId);
+    currentStep = step;
+
+    addTypingIndicator();
+
+    setTimeout(() => {
+      removeTypingIndicator();
+      addMessage(step.bot, 'bot');
+      if (step.isEnd) showEndState(step);
+      else showOptions(step.options);
+    }, 700);
+  }
+
+  function completeSession(takeaway) {
+    if (!consultedSessions.includes(currentSessionIdx)) {
+      consultedSessions.push(currentSessionIdx);
+    }
+    dom.modalTakeaway.textContent = takeaway || "Good clinical interviewing uncovers hidden burden and improves outcomes.";
+    dom.completionModal.classList.remove('hidden');
+    const nextBtn = document.getElementById('btn-next');
+    if (nextBtn) nextBtn.textContent = 'Go to Competence Check';
+
+    setTimeout(() => {
+      dom.modalContent.classList.remove('scale-95', 'opacity-0');
+      dom.modalContent.classList.add('scale-100', 'opacity-100');
+    }, 10);
+
+    renderSessionList();
+  }
+
+  function nextSession() {
+    dom.modalContent.classList.remove('scale-100', 'opacity-100');
+    dom.modalContent.classList.add('scale-95', 'opacity-0');
+
+    setTimeout(() => {
+      dom.completionModal.classList.add('hidden');
+      switchTab('competence');
+    }, 250);
+  }
+
+  function init() {
+    dom.btnMenu.addEventListener('click', () => toggleSidebar(false));
+    dom.btnClose.addEventListener('click', () => toggleSidebar(true));
+    dom.btnExamine.addEventListener('click', toggleExamine);
+    dom.btnReturn.addEventListener('click', toggleExamine);
+    dom.btnNext.addEventListener('click', nextSession);
+    dom.moduleTabs.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+
+    renderSessionList();
+    loadSession(0);
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
